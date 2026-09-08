@@ -1,0 +1,140 @@
+<?xml version="1.0"?>
+<robot name="scara" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!-- Параметры -->
+  <xacro:property name="L1" value="0.35"/>
+  <xacro:property name="L2" value="0.25"/>
+  <xacro:property name="radius" value="0.025"/>
+  <xacro:property name="M1" value="1.924"/>
+  <xacro:property name="M2" value="1.374"/>
+  <xacro:property name="Ixx1" value="0.000601"/>
+  <xacro:property name="Iyy1" value="0.01994"/>
+  <xacro:property name="Izz1" value="0.01994"/>
+  <xacro:property name="Ixx2" value="0.000429"/>
+  <xacro:property name="Iyy2" value="0.00720"/>
+  <xacro:property name="Izz2" value="0.00720"/>
+
+  <xacro:include filename="$(find scara_sim)/description/materials.xacro"/>
+
+  <link name="base_link">
+    <inertial>
+      <mass value="0.001"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
+    <visual>
+      <geometry><box size="0.01 0.01 0.01"/></geometry>
+    </visual>
+  </link>
+
+  <joint name="joint1" type="continuous">
+    <parent link="base_link"/>
+    <child link="link1"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1000000" velocity="100" lower="-3.14159" upper="3.14159"/>
+    <dynamics damping="0.1" friction="0.0"/>
+  </joint>
+
+  <link name="link1">
+    <inertial>
+      <origin xyz="${L1/2} 0 0" rpy="0 1.5708 0"/>
+      <mass value="${M1}"/>
+      <inertia ixx="${Ixx1}" ixy="0" ixz="0" iyy="${Iyy1}" iyz="0" izz="${Izz1}"/>
+    </inertial>
+    <visual>
+      <origin xyz="${L1/2} 0 0" rpy="0 1.5708 0"/>
+      <geometry>
+        <cylinder radius="${radius}" length="${L1}"/>
+      </geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin xyz="${L1/2} 0 0" rpy="0 1.5708 0"/>
+      <geometry>
+        <cylinder radius="${radius}" length="${L1}"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="joint2" type="continuous">
+    <parent link="link1"/>
+    <child link="link2"/>
+    <origin xyz="${L1} 0 ${radius*2}" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1000000" velocity="100" lower="-3.14159" upper="3.14159"/>
+    <dynamics damping="0.1" friction="0.0"/>
+  </joint>
+
+  <link name="link2">
+    <inertial>
+      <origin xyz="${L2/2} 0 0" rpy="0 1.5708 0"/>
+      <mass value="${M2}"/>
+      <inertia ixx="${Ixx2}" ixy="0" ixz="0" iyy="${Iyy2}" iyz="0" izz="${Izz2}"/>
+    </inertial>
+    <visual>
+      <origin xyz="${L2/2} 0 0" rpy="0 1.5708 0"/>
+      <geometry>
+        <cylinder radius="${radius}" length="${L2}"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <origin xyz="${L2/2} 0 0" rpy="0 1.5708 0"/>
+      <geometry>
+        <cylinder radius="${radius}" length="${L2}"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Инструментальная точка -->
+  <link name="tool0"/>
+  <joint name="tool_joint" type="fixed">
+    <parent link="link2"/>
+    <child link="tool0"/>
+    <origin xyz="${L2} 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="world"/>
+
+  <joint name="world_to_base" type="fixed">
+    <parent link="world"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0.1" rpy="0 0 0"/>
+  </joint>
+
+
+  <!-- Plugin for Ignition Gazebo (gz_ros2_control) -->
+  <gazebo>
+    <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <parameters>$(find scara_sim)/config/scara_controllers.yaml</parameters>
+    </plugin>
+  </gazebo>
+
+  <ros2_control name="GazeboSimSystem" type="system">
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+    <joint name="joint1">
+      <command_interface name="effort">
+        <param name="min">-1000</param>
+        <param name="max">1000</param>
+      </command_interface>
+      <state_interface name="position">
+        <param name="initial_value">-3.0826809323106694</param> <!-- q1_start в радианах -->
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="joint2">
+      <command_interface name="effort">
+        <param name="min">-1000</param>
+        <param name="max">1000</param>
+      </command_interface>
+      <state_interface name="position">
+        <param name="initial_value">1.920753038037959</param> <!-- q2_start в радианах -->
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+  </ros2_control>
+
+</robot>
